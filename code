@@ -1,0 +1,48 @@
+library(tidyverse)
+library(dplyr)
+library(readr)
+
+
+#I saved csv file on Excel first since URL from private server would not download properly via getURL function
+#Data needs to be saved in desktop to a path identical to the one below
+
+FGdataframe <- read_excel("C:\\Users\\brand\\OneDrive\\Documents\\shotsdata.xlsx")
+
+#Add additional variable that calculates distance from hoop
+
+FGdataframe$distance <- sqrt((FGdataframe$y)^2 + (FGdataframe$x)^2)
+view(FGdataframe)
+
+
+#Create each zone based on distance from the basket
+
+FGdataframe$Zone <- with(FGdataframe, ifelse(y > 7.8 & distance > 23.75, "NC3", 
+                                      ifelse(y <= 7.8 & distance > 22, "C3", 
+                                      "2PT")))
+
+#Find shot distribution for each team
+
+FGdataframeA <- FGdataframe[!(FGdataframe$team == "Team B"),]
+
+dfA <- FGdataframeA %>% 
+      group_by(Zone) %>% 
+      count()
+dfA$pct <- dfA$n/280
+
+
+FGdataframeB <- FGdataframe[!(FGdataframe$team == "Team A"),]
+
+dfB <- FGdataframeB %>% 
+  group_by(Zone) %>% 
+  count()
+dfB$pct <- dfB$n/280
+
+#Calculate eFG% for each team in each zone
+
+FGdataframe$threepointer <- with(FGdataframe, ifelse(Zone == "NC3" & fgmade > 0, 1, 
+                                              ifelse(Zone == "C3" & fgmade > 0 , 1, 0)))
+
+
+FGdataframe %>% 
+  group_by(team, Zone) %>% 
+  summarize(eFG = mean(fgmade + (0.5*threepointer)))
